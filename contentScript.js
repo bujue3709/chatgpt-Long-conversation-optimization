@@ -20,14 +20,55 @@
     keepLatest: 20,
     collapsedNodes: [],
     cachedNodes: [],
+    conversationKey: null,
   };
 
-  const getMessageNodes = () => Array.from(document.querySelectorAll("main article"));
+  const getConversationKey = () => {
+    const match = window.location.pathname.match(/\/c\/([^/]+)/);
+    if (match) {
+      return match[1];
+    }
+    return window.location.pathname;
+  };
+
+  const resetConversationState = () => {
+    state.isCollapsed = false;
+    state.collapsedNodes = [];
+    state.cachedNodes = [];
+  };
+
+  const ensureConversationState = () => {
+    const nextKey = getConversationKey();
+    if (state.conversationKey !== nextKey) {
+      state.conversationKey = nextKey;
+      resetConversationState();
+    }
+  };
+
+  const getMessageNodes = () => {
+    const roleNodes = Array.from(document.querySelectorAll("[data-message-author-role]"));
+    const nodes = roleNodes.map((node) => node.closest("article") || node);
+    const uniqueNodes = [];
+    const seen = new Set();
+    nodes.forEach((node) => {
+      if (seen.has(node)) {
+        return;
+      }
+      seen.add(node);
+      uniqueNodes.push(node);
+    });
+    if (uniqueNodes.length > 0) {
+      return uniqueNodes;
+    }
+    return Array.from(document.querySelectorAll("main article"));
+  };
 
   const buildMessagePayload = (nodes) =>
     nodes
       .map((node, index) => {
-        const roleNode = node.querySelector("[data-message-author-role]");
+        const roleNode = node.matches("[data-message-author-role]")
+          ? node
+          : node.querySelector("[data-message-author-role]");
         let role = roleNode?.getAttribute("data-message-author-role") || "unknown";
 
         if (role === "unknown") {
@@ -72,6 +113,7 @@
     }
   };
   const collapseOldMessages = () => {
+    ensureConversationState();
     const nodes = getMessageNodes();
     if (nodes.length <= state.keepLatest) {
       updateStatus("当前消息数量较少，无需优化。", "info");
@@ -94,6 +136,7 @@
   };
 
   const restoreMessages = () => {
+    ensureConversationState();
     if (!state.isCollapsed) {
       updateStatus("没有需要恢复的消息。", "info");
       return;
@@ -116,6 +159,7 @@
   };
 
   const exportMessages = () => {
+    ensureConversationState();
     const visibleNodes = getMessageNodes();
     const nodesForExport = state.isCollapsed
       ? [...state.cachedNodes, ...visibleNodes.filter((node) => !state.cachedNodes.includes(node))]
