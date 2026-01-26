@@ -29,7 +29,6 @@
     nodes
       .map((node, index) => {
         const role = node.getAttribute("data-message-author-role") || "unknown";
-
         const text = node.innerText.trim();
         return {
           index: index + 1,
@@ -63,7 +62,6 @@
       return null;
     }
   };
-
   const collapseOldMessages = () => {
     const nodes = getMessageNodes();
     if (nodes.length <= state.keepLatest) {
@@ -121,7 +119,6 @@
           ),
         ]
       : visibleRoleNodes;
-
     const payload = {
       exportedAt: new Date().toISOString(),
       url: window.location.href,

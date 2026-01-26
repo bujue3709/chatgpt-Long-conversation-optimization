@@ -104,13 +104,13 @@
   border: none;
   cursor: pointer;
   z-index: 2147483647;
-  background-color: rgba(17, 24, 39, 0.7);
+  background-color: rgb(255, 255, 255);
   backdrop-filter: blur(6px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
   display: none;
   align-items: center;
   justify-content: center;
-  background-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='none'><path d='M128 16l55.4 32.5v64L128 144l-55.4-31.5v-64L128 16z' fill='%23ffffff'/><path d='M183.4 112.5l55.4 32.5v64L183.4 240l-55.4-31.5v-64l55.4-32z' fill='%23ffffff'/><path d='M72.6 112.5L128 144v64L72.6 240 17.2 208.5v-64l55.4-32z' fill='%23ffffff'/></svg>\");
+  background-image: url('https://th.bing.com/th/id/OSK.UumnVHZKD5zlXvOHIZ50ztUhAMwR2bKEKxT1U0y4IOo?o=7&cb=defcachec2rm=3&rs=1&pid=ImgDetMain&o=7&rm=3');
   background-repeat: no-repeat;
   background-position: center;
   background-size: 26px 26px;
