@@ -9,7 +9,6 @@
   const MINIMIZED_ID = "chatgpt-conversation-toolkit-minimized";
   const POSITION_KEY = "chatgpt-toolkit-position";
 
-
   if (document.getElementById(TOOLKIT_ID)) {
     return;
   }
@@ -23,21 +22,13 @@
   };
 
   const getMessageNodes = () => Array.from(document.querySelectorAll("main article"));
+  const getRoleNodes = () =>
+    Array.from(document.querySelectorAll("main [data-message-author-role]"));
 
   const buildMessagePayload = (nodes) =>
     nodes
       .map((node, index) => {
-        const roleNode = node.querySelector("[data-message-author-role]");
-        let role = roleNode?.getAttribute("data-message-author-role") || "unknown";
-
-        if (role === "unknown") {
-          if (node.querySelector('img[alt*="User"], svg[aria-label*="User"]')) {
-            role = "user";
-          } else if (node.querySelector('img[alt*="ChatGPT"], svg[aria-label*="ChatGPT"]')) {
-            role = "assistant";
-          }
-        }
-
+        const role = node.getAttribute("data-message-author-role") || "unknown";
         const text = node.innerText.trim();
         return {
           index: index + 1,
@@ -116,11 +107,18 @@
   };
 
   const exportMessages = () => {
-    const visibleNodes = getMessageNodes();
+    const visibleRoleNodes = getRoleNodes();
+    const cachedRoleNodes = state.cachedNodes.flatMap((article) =>
+      Array.from(article.querySelectorAll("[data-message-author-role]"))
+    );
     const nodesForExport = state.isCollapsed
-      ? [...state.cachedNodes, ...visibleNodes.filter((node) => !state.cachedNodes.includes(node))]
-      : visibleNodes;
-
+      ? [
+          ...cachedRoleNodes,
+          ...visibleRoleNodes.filter(
+            (node) => !state.cachedNodes.some((article) => article.contains(node))
+          ),
+        ]
+      : visibleRoleNodes;
     const payload = {
       exportedAt: new Date().toISOString(),
       url: window.location.href,
@@ -304,6 +302,7 @@
       expandToolbar();
     });
   };
+
   const attachToolbar = () => {
     if (document.getElementById(TOOLKIT_ID)) {
       return;
