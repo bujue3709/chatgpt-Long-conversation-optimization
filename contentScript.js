@@ -9,6 +9,7 @@
   const MINIMIZED_ID = "chatgpt-conversation-toolkit-minimized";
   const POSITION_KEY = "chatgpt-toolkit-position";
 
+
   if (document.getElementById(TOOLKIT_ID)) {
     return;
   }
@@ -70,7 +71,6 @@
       return null;
     }
   };
-
   const collapseOldMessages = () => {
     const nodes = getMessageNodes();
     if (nodes.length <= state.keepLatest) {
@@ -304,7 +304,6 @@
       expandToolbar();
     });
   };
-
   const attachToolbar = () => {
     if (document.getElementById(TOOLKIT_ID)) {
       return;
