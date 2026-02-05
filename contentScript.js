@@ -106,6 +106,31 @@
       return null;
     }
   };
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+  const snapMinimizedToEdge = (button, options = { save: true }) => {
+    const rect = button.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const maxTop = Math.max(0, viewportHeight - rect.height);
+    const nextTop = clamp(rect.top, 0, maxTop);
+    const align = rect.left + rect.width / 2 >= viewportWidth / 2 ? "right" : "left";
+    const offset = align === "right" ? Math.max(0, viewportWidth - rect.right) : rect.left;
+
+    button.style.top = `${nextTop}px`;
+    if (align === "right") {
+      button.style.right = `${offset}px`;
+      button.style.left = "auto";
+    } else {
+      button.style.left = `${offset}px`;
+      button.style.right = "auto";
+    }
+
+    if (options.save) {
+      saveMinimizedPosition({ top: nextTop, align, offset });
+    }
+  };
   const collapseOldMessages = () => {
     ensureConversationState();
     const nodes = getMessageContainers();
@@ -251,12 +276,21 @@
     if (!position) {
       return;
     }
-    if (typeof position.left === "number" && typeof position.top === "number") {
-      button.style.left = `${position.left}px`;
+    if (typeof position.top === "number") {
       button.style.top = `${position.top}px`;
-      button.style.right = "auto";
       button.style.bottom = "auto";
     }
+    if (position.align === "right" && typeof position.offset === "number") {
+      button.style.right = `${position.offset}px`;
+      button.style.left = "auto";
+    } else if (typeof position.left === "number") {
+      button.style.left = `${position.left}px`;
+      button.style.right = "auto";
+    } else if (position.align === "left" && typeof position.offset === "number") {
+      button.style.left = `${position.offset}px`;
+      button.style.right = "auto";
+    }
+    snapMinimizedToEdge(button, { save: false });
   };
 
   const minimizeToolbar = () => {
@@ -268,6 +302,7 @@
     toolbar.classList.add("is-hidden");
     minimized.classList.add("is-visible");
     state.isMinimized = true;
+    snapMinimizedToEdge(minimized);
   };
 
   const expandToolbar = () => {
@@ -312,9 +347,7 @@
       isDragging = false;
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
-
-      const rect = button.getBoundingClientRect();
-      saveMinimizedPosition({ left: rect.left, top: rect.top });
+      snapMinimizedToEdge(button);
 
       setTimeout(() => {
         moved = false;
@@ -353,6 +386,11 @@
     document.body.appendChild(minimizedButton);
     applyMinimizedPosition(minimizedButton);
     enableDrag(minimizedButton);
+    window.addEventListener("resize", () => {
+      if (minimizedButton.classList.contains("is-visible")) {
+        snapMinimizedToEdge(minimizedButton);
+      }
+    });
   };
 
   attachToolbar();
