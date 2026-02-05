@@ -1,0 +1,121 @@
+#chatgpt-conversation-toolkit {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 240px;
+  z-index: 2147483647;
+  background: #111827;
+  color: #f9fafb;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  padding: 12px;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+#chatgpt-conversation-toolkit.is-hidden {
+  display: none;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-subtitle {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-minimize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-minimize:hover {
+  color: #f9fafb;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-button {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 13px;
+  transition: background 0.2s ease;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-button:hover {
+  background: #374151;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-button.primary {
+  background: #2563eb;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-button.primary:hover {
+  background: #1d4ed8;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-status {
+  margin: 10px 0 6px;
+  font-size: 12px;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-status[data-tone="success"] {
+  color: #34d399;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-status[data-tone="info"] {
+  color: #9ca3af;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-tip {
+  margin: 0;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.chatgpt-toolkit-minimized {
+  position: fixed;
+  right: 16px;
+  top: 200px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  z-index: 2147483647;
+  background-color: rgb(255, 255, 255);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background-image: url('https://th.bing.com/th/id/OSK.UumnVHZKD5zlXvOHIZ50ztUhAMwR2bKEKxT1U0y4IOo?o=7&cb=defcachec2rm=3&rs=1&pid=ImgDetMain&o=7&rm=3');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 26px 26px;
+}
+
+.chatgpt-toolkit-minimized.is-visible {
+  display: flex;
+}
