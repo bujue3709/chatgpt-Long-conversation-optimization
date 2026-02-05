@@ -20,14 +20,48 @@
     keepLatest: 20,
     collapsedNodes: [],
     cachedNodes: [],
+    conversationKey: null,
   };
 
-  const getMessageNodes = () => Array.from(document.querySelectorAll("main article"));
+  const getConversationKey = () => {
+    const match = window.location.pathname.match(/\/c\/([^/]+)/);
+    if (match) {
+      return match[1];
+    }
+    return window.location.pathname;
+  };
 
-  const buildMessagePayload = (nodes) =>
-    nodes
+  const resetConversationState = () => {
+    state.isCollapsed = false;
+    state.collapsedNodes = [];
+    state.cachedNodes = [];
+  };
+
+  const ensureConversationState = () => {
+    const nextKey = getConversationKey();
+    if (state.conversationKey !== nextKey) {
+      state.conversationKey = nextKey;
+      resetConversationState();
+    }
+  };
+
+  const getMessageContainers = () => Array.from(document.querySelectorAll("main article"));
+
+  const getRoleNodesFromContainer = (container) => {
+    if (container.matches("[data-message-author-role]")) {
+      return [container];
+    }
+    return Array.from(container.querySelectorAll("[data-message-author-role]"));
+  };
+
+  const buildMessagePayload = (containers) => {
+    const roleNodes = containers.flatMap((container) => getRoleNodesFromContainer(container));
+    const nodesToExport = roleNodes.length > 0 ? roleNodes : containers;
+    return nodesToExport
       .map((node, index) => {
-        const roleNode = node.querySelector("[data-message-author-role]");
+        const roleNode = node.matches("[data-message-author-role]")
+          ? node
+          : node.querySelector("[data-message-author-role]");
         let role = roleNode?.getAttribute("data-message-author-role") || "unknown";
 
         if (role === "unknown") {
@@ -46,6 +80,7 @@
         };
       })
       .filter((message) => message.text.length > 0);
+  };
 
   const updateStatus = (message, tone = "info") => {
     const status = document.getElementById(STATUS_ID);
@@ -72,7 +107,8 @@
     }
   };
   const collapseOldMessages = () => {
-    const nodes = getMessageNodes();
+    ensureConversationState();
+    const nodes = getMessageContainers();
     if (nodes.length <= state.keepLatest) {
       updateStatus("当前消息数量较少，无需优化。", "info");
       return;
@@ -94,6 +130,7 @@
   };
 
   const restoreMessages = () => {
+    ensureConversationState();
     if (!state.isCollapsed) {
       updateStatus("没有需要恢复的消息。", "info");
       return;
@@ -116,16 +153,18 @@
   };
 
   const exportMessages = () => {
-    const visibleNodes = getMessageNodes();
+    ensureConversationState();
+    const visibleNodes = getMessageContainers();
     const nodesForExport = state.isCollapsed
       ? [...state.cachedNodes, ...visibleNodes.filter((node) => !state.cachedNodes.includes(node))]
       : visibleNodes;
 
+    const messages = buildMessagePayload(nodesForExport);
     const payload = {
       exportedAt: new Date().toISOString(),
       url: window.location.href,
-      messageCount: nodesForExport.length,
-      messages: buildMessagePayload(nodesForExport),
+      messageCount: messages.length,
+      messages,
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 2)], {
