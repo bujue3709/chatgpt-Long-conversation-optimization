@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Conversation Toolkit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Optimize long ChatGPT conversations and export full sessions with one click.",
   "content_scripts": [
     {
