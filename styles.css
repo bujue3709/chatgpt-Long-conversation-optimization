@@ -119,3 +119,102 @@
 .chatgpt-toolkit-minimized.is-visible {
   display: flex;
 }
+
+/* 搜索功能样式 */
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #374151;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-input {
+  flex: 1;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #1f2937;
+  color: #f9fafb;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-input:focus {
+  border-color: #2563eb;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-input::placeholder {
+  color: #6b7280;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #2563eb;
+  color: #f9fafb;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-btn:hover {
+  background: #1d4ed8;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-nav-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  background: #374151;
+  color: #f9fafb;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-nav-btn:hover:not(:disabled) {
+  background: #4b5563;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#chatgpt-conversation-toolkit .chatgpt-toolkit-search-result {
+  font-size: 12px;
+  color: #9ca3af;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* 搜索匹配高亮样式 */
+.chatgpt-toolkit-search-highlight {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 2px;
+  border-radius: 8px;
+  animation: chatgpt-toolkit-highlight-pulse 1.5s ease-in-out;
+}
+
+@keyframes chatgpt-toolkit-highlight-pulse {
+  0%, 100% {
+    outline-color: #2563eb;
+  }
+  50% {
+    outline-color: #60a5fa;
+  }
+}

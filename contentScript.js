@@ -21,6 +21,12 @@
     collapsedNodes: [],
     cachedNodes: [],
     conversationKey: null,
+    anchorNode: null,
+    anchorParent: null,
+    // 搜索相关状态
+    searchQuery: '',
+    searchMatches: [],
+    currentMatchIndex: -1,
   };
 
   const getConversationKey = () => {
@@ -46,6 +52,11 @@
     state.isCollapsed = false;
     state.collapsedNodes = [];
     state.cachedNodes = [];
+    state.anchorNode = null;
+    state.anchorParent = null;
+    state.searchQuery = '';
+    state.searchMatches = [];
+    state.currentMatchIndex = -1;
   };
 
   const ensureConversationState = () => {
@@ -198,26 +209,26 @@
     const viewportHeight = window.innerHeight;
     const buttonWidth = rect.width;
     const buttonHeight = rect.height;
-    
+
     // 计算按钮中心点到左右边缘的距离
     const centerX = rect.left + buttonWidth / 2;
     const distanceToLeft = centerX;
     const distanceToRight = viewportWidth - centerX;
-    
+
     // 确定贴合到哪个边缘
     const edge = distanceToLeft <= distanceToRight ? 'left' : 'right';
-    
+
     // 获取当前 top 值，并确保在可视区域内
     let top = rect.top;
     const margin = 16; // 边距
-    
+
     // 确保 top 不会让按钮超出可视区域
     if (top < margin) {
       top = margin;
     } else if (top + buttonHeight > viewportHeight - margin) {
       top = viewportHeight - buttonHeight - margin;
     }
-    
+
     // 应用贴合位置
     if (edge === 'left') {
       button.style.left = `${margin}px`;
@@ -228,7 +239,7 @@
     }
     button.style.top = `${top}px`;
     button.style.bottom = 'auto';
-    
+
     // 保存位置
     if (savePosition) {
       saveMinimizedPosition({ edge, top });
@@ -240,15 +251,15 @@
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const margin = 16;
-    
+
     let needsAdjustment = false;
-    
+
     // 检查是否超出可视区域
-    if (rect.left < 0 || rect.right > viewportWidth || 
-        rect.top < 0 || rect.bottom > viewportHeight) {
+    if (rect.left < 0 || rect.right > viewportWidth ||
+      rect.top < 0 || rect.bottom > viewportHeight) {
       needsAdjustment = true;
     }
-    
+
     if (needsAdjustment) {
       snapToEdge(button, true);
     }
@@ -264,13 +275,24 @@
     state.cachedNodes = nodes;
     const toCollapse = nodes.slice(0, nodes.length - state.keepLatest);
 
+    // 记录第一个保留的节点作为锚点
+    const firstKeptNode = nodes[nodes.length - state.keepLatest];
+    state.anchorNode = firstKeptNode;
+    state.anchorParent = firstKeptNode?.parentNode;
+
     state.collapsedNodes = toCollapse.map((node) => ({
       node,
       parent: node.parentNode,
-      nextSibling: node.nextSibling,
     }));
 
     toCollapse.forEach((node) => node.remove());
+
+    // 清除搜索状态和高亮
+    clearSearchHighlight();
+    state.searchQuery = '';
+    state.searchMatches = [];
+    state.currentMatchIndex = -1;
+    updateSearchUI();
 
     state.isCollapsed = true;
     updateStatus(`已优化：隐藏 ${toCollapse.length} 条旧消息。`, "success");
@@ -283,18 +305,51 @@
       return;
     }
 
-    state.collapsedNodes.forEach(({ node, parent, nextSibling }) => {
-      if (!parent) {
-        return;
+    // 保存当前滚动位置：记录当前可见的第一个消息节点
+    const visibleNodes = getMessageNodes();
+    let anchorElement = null;
+    let anchorOffsetTop = 0;
+
+    if (visibleNodes.length > 0) {
+      // 找到当前视口中可见的第一个消息节点（部分可见也算）
+      for (const node of visibleNodes) {
+        const rect = node.getBoundingClientRect();
+        // 消息部分可见：底部在视口内 且 顶部在视口内或上方
+        if (rect.bottom > 0 && rect.top < window.innerHeight) {
+          anchorElement = node;
+          anchorOffsetTop = rect.top;
+          break;
+        }
       }
-      if (nextSibling && parent.contains(nextSibling)) {
-        parent.insertBefore(node, nextSibling);
-      } else {
+      // 如果没找到，使用第一个节点
+      if (!anchorElement) {
+        anchorElement = visibleNodes[0];
+        anchorOffsetTop = anchorElement.getBoundingClientRect().top;
+      }
+    }
+
+    // 使用锚点恢复：将所有隐藏的节点按顺序插入到锚点之前
+    state.collapsedNodes.forEach(({ node, parent }) => {
+      if (state.anchorNode && state.anchorParent?.contains(state.anchorNode)) {
+        state.anchorParent.insertBefore(node, state.anchorNode);
+      } else if (parent) {
+        // 如果锚点不存在，尝试添加到原父节点
         parent.appendChild(node);
       }
     });
 
+    // 恢复后，滚动回之前可见的消息位置
+    if (anchorElement) {
+      requestAnimationFrame(() => {
+        const newRect = anchorElement.getBoundingClientRect();
+        const scrollDelta = newRect.top - anchorOffsetTop;
+        window.scrollBy(0, scrollDelta);
+      });
+    }
+
     state.collapsedNodes = [];
+    state.anchorNode = null;
+    state.anchorParent = null;
     state.isCollapsed = false;
     updateStatus("已恢复所有消息。", "success");
   };
@@ -332,13 +387,119 @@
     updateStatus("导出已开始，请检查下载文件。", "success");
   };
 
+  // ============ 搜索功能 ============
+
+  const updateSearchUI = () => {
+    const searchResult = document.getElementById('chatgpt-toolkit-search-result');
+    const prevBtn = document.getElementById('chatgpt-toolkit-search-prev');
+    const nextBtn = document.getElementById('chatgpt-toolkit-search-next');
+
+    if (!searchResult) return;
+
+    if (state.searchMatches.length === 0) {
+      if (state.searchQuery) {
+        searchResult.textContent = '未找到匹配';
+      } else {
+        searchResult.textContent = '';
+      }
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+    } else {
+      searchResult.textContent = `${state.currentMatchIndex + 1} / ${state.searchMatches.length}`;
+      prevBtn.disabled = state.searchMatches.length <= 1;
+      nextBtn.disabled = state.searchMatches.length <= 1;
+    }
+  };
+
+  const clearSearchHighlight = () => {
+    document.querySelectorAll('.chatgpt-toolkit-search-highlight').forEach(el => {
+      el.classList.remove('chatgpt-toolkit-search-highlight');
+    });
+  };
+
+  const highlightCurrentMatch = () => {
+    clearSearchHighlight();
+    if (state.currentMatchIndex >= 0 && state.currentMatchIndex < state.searchMatches.length) {
+      const node = state.searchMatches[state.currentMatchIndex];
+      node.classList.add('chatgpt-toolkit-search-highlight');
+    }
+  };
+
+  const performSearch = (query) => {
+    state.searchQuery = query.trim().toLowerCase();
+    state.searchMatches = [];
+    state.currentMatchIndex = -1;
+
+    // 检查是否处于隐藏状态
+    if (state.isCollapsed) {
+      updateStatus('请先恢复隐藏消息，才能使用搜索功能。', 'info');
+      updateSearchUI();
+      return;
+    }
+
+    if (!state.searchQuery) {
+      clearSearchHighlight();
+      updateSearchUI();
+      return;
+    }
+
+    // 搜索所有消息节点
+    const nodes = getMessageNodes();
+    nodes.forEach(node => {
+      const text = (node.textContent || '').toLowerCase();
+      if (text.includes(state.searchQuery)) {
+        state.searchMatches.push(node);
+      }
+    });
+
+    if (state.searchMatches.length > 0) {
+      state.currentMatchIndex = 0;
+      highlightCurrentMatch();
+      scrollToCurrentMatch();
+    }
+
+    updateSearchUI();
+  };
+
+  const scrollToCurrentMatch = () => {
+    if (state.currentMatchIndex >= 0 && state.currentMatchIndex < state.searchMatches.length) {
+      const node = state.searchMatches[state.currentMatchIndex];
+      node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  const navigateToPrevMatch = () => {
+    if (state.isCollapsed) {
+      updateStatus('请先恢复隐藏消息，才能使用搜索功能。', 'info');
+      return;
+    }
+    if (state.searchMatches.length === 0) return;
+
+    state.currentMatchIndex = (state.currentMatchIndex - 1 + state.searchMatches.length) % state.searchMatches.length;
+    highlightCurrentMatch();
+    scrollToCurrentMatch();
+    updateSearchUI();
+  };
+
+  const navigateToNextMatch = () => {
+    if (state.isCollapsed) {
+      updateStatus('请先恢复隐藏消息，才能使用搜索功能。', 'info');
+      return;
+    }
+    if (state.searchMatches.length === 0) return;
+
+    state.currentMatchIndex = (state.currentMatchIndex + 1) % state.searchMatches.length;
+    highlightCurrentMatch();
+    scrollToCurrentMatch();
+    updateSearchUI();
+  };
+
   const buildToolbar = () => {
     const container = document.createElement("section");
     container.id = TOOLKIT_ID;
     container.innerHTML = `
       <div class="chatgpt-toolkit-header">
         <strong>ChatGPT 工具</strong>
-        <span class="chatgpt-toolkit-subtitle">优化长会话 + 导出</span>
         <button type="button" class="chatgpt-toolkit-minimize" data-action="minimize" aria-label="收起工具">
           收起
         </button>
@@ -353,6 +514,17 @@
         <button type="button" class="chatgpt-toolkit-button primary" data-action="export">
           一键导出
         </button>
+      </div>
+      <div class="chatgpt-toolkit-search">
+        <div class="chatgpt-toolkit-search-row">
+          <input type="text" id="chatgpt-toolkit-search-input" class="chatgpt-toolkit-search-input" placeholder="搜索消息内容..." />
+          <button type="button" class="chatgpt-toolkit-search-btn" data-action="search" title="搜索">🔍</button>
+        </div>
+        <div class="chatgpt-toolkit-search-nav">
+          <button type="button" id="chatgpt-toolkit-search-prev" class="chatgpt-toolkit-nav-btn" data-action="search-prev" disabled title="上一条">◀</button>
+          <span id="chatgpt-toolkit-search-result" class="chatgpt-toolkit-search-result"></span>
+          <button type="button" id="chatgpt-toolkit-search-next" class="chatgpt-toolkit-nav-btn" data-action="search-next" disabled title="下一条">▶</button>
+        </div>
       </div>
       <p id="${STATUS_ID}" class="chatgpt-toolkit-status" data-tone="info">准备就绪。</p>
       <p class="chatgpt-toolkit-tip">提示：优化会隐藏旧消息，导出时会自动包含隐藏内容。</p>
@@ -379,6 +551,26 @@
       if (action === "export") {
         exportMessages();
       }
+      if (action === "search") {
+        const input = document.getElementById('chatgpt-toolkit-search-input');
+        if (input) {
+          performSearch(input.value);
+        }
+      }
+      if (action === "search-prev") {
+        navigateToPrevMatch();
+      }
+      if (action === "search-next") {
+        navigateToNextMatch();
+      }
+    });
+
+    // 监听搜索输入框的回车事件
+    container.addEventListener("keydown", (event) => {
+      const target = event.target;
+      if (target.id === 'chatgpt-toolkit-search-input' && event.key === 'Enter') {
+        performSearch(target.value);
+      }
     });
 
     return container;
@@ -400,23 +592,23 @@
       snapToEdge(button, false);
       return;
     }
-    
+
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const buttonHeight = button.offsetHeight || 48;
     const margin = 16;
-    
+
     // 新格式：edge + top
     if (position.edge && typeof position.top === "number") {
       let top = position.top;
-      
+
       // 确保 top 在可视区域内
       if (top < margin) {
         top = margin;
       } else if (top + buttonHeight > viewportHeight - margin) {
         top = viewportHeight - buttonHeight - margin;
       }
-      
+
       if (position.edge === 'left') {
         button.style.left = `${margin}px`;
         button.style.right = 'auto';
@@ -428,22 +620,22 @@
       button.style.bottom = 'auto';
       return;
     }
-    
+
     // 兼容旧格式：left + top（迁移到新格式）
     if (typeof position.left === "number" && typeof position.top === "number") {
       let top = position.top;
-      
+
       // 确保 top 在可视区域内
       if (top < margin) {
         top = margin;
       } else if (top + buttonHeight > viewportHeight - margin) {
         top = viewportHeight - buttonHeight - margin;
       }
-      
+
       // 判断应该贴哪个边
       const centerX = position.left + 24; // 按钮宽度的一半
       const edge = centerX <= viewportWidth / 2 ? 'left' : 'right';
-      
+
       if (edge === 'left') {
         button.style.left = `${margin}px`;
         button.style.right = 'auto';
@@ -453,7 +645,7 @@
       }
       button.style.top = `${top}px`;
       button.style.bottom = 'auto';
-      
+
       // 保存为新格式
       saveMinimizedPosition({ edge, top });
     }
@@ -553,8 +745,15 @@
     document.body.appendChild(minimizedButton);
     applyMinimizedPosition(minimizedButton);
     enableDrag(minimizedButton);
-    
-    // 监听窗口大小变化，确保按钮始终可见
+  };
+
+  // 标志位：避免重复添加 resize 监听器
+  let resizeListenerAdded = false;
+
+  const setupResizeListener = () => {
+    if (resizeListenerAdded) return;
+    resizeListenerAdded = true;
+
     window.addEventListener('resize', () => {
       const btn = document.getElementById(MINIMIZED_ID);
       if (btn && btn.classList.contains('is-visible')) {
@@ -564,6 +763,7 @@
   };
 
   attachToolbar();
+  setupResizeListener();
 
   const observer = new MutationObserver(() => {
     if (!document.getElementById(TOOLKIT_ID)) {
