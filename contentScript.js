@@ -674,6 +674,7 @@
   };
 
   const enableDrag = (button) => {
+    const DRAG_THRESHOLD = 5; // 拖拽阈值：超过5px才判定为拖拽
     let isDragging = false;
     let moved = false;
     let startX = 0;
@@ -685,9 +686,19 @@
       if (!isDragging) {
         return;
       }
-      moved = true;
+
       const deltaX = event.clientX - startX;
       const deltaY = event.clientY - startY;
+
+      // 只有超过阈值才判定为拖拽
+      if (!moved) {
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        if (distance < DRAG_THRESHOLD) {
+          return; // 未超过阈值，不算拖拽
+        }
+        moved = true; // 超过阈值，标记为拖拽
+      }
+
       const nextLeft = startLeft + deltaX;
       const nextTop = startTop + deltaY;
 
@@ -705,8 +716,10 @@
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
 
-      // 拖动结束后自动贴合到最近的边缘
-      snapToEdge(button, true);
+      // 只有实际拖动了才贴合边缘
+      if (moved) {
+        snapToEdge(button, true);
+      }
 
       setTimeout(() => {
         moved = false;
