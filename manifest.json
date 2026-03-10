@@ -18,7 +18,9 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": [],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*"
