@@ -532,10 +532,17 @@
 
     container.addEventListener("click", (event) => {
       const target = event.target;
-      if (!(target instanceof HTMLElement)) {
+      const actionTarget =
+        target instanceof Element
+          ? target.closest("[data-action]")
+          : target instanceof Node && target.parentElement
+            ? target.parentElement.closest("[data-action]")
+            : null;
+
+      if (!(actionTarget instanceof HTMLElement)) {
         return;
       }
-      const action = target.dataset.action;
+      const action = actionTarget.dataset.action;
       if (!action) {
         return;
       }
@@ -651,9 +658,26 @@
     }
   };
 
+  const ensureMinimizedButton = () => {
+    const existingButton = document.getElementById(MINIMIZED_ID);
+    if (existingButton) {
+      return existingButton;
+    }
+
+    if (!document.body) {
+      return null;
+    }
+
+    const button = buildMinimizedButton();
+    document.body.appendChild(button);
+    applyMinimizedPosition(button);
+    enableDrag(button);
+    return button;
+  };
+
   const minimizeToolbar = () => {
     const toolbar = document.getElementById(TOOLKIT_ID);
-    const minimized = document.getElementById(MINIMIZED_ID);
+    const minimized = ensureMinimizedButton();
     if (!toolbar || !minimized) {
       return;
     }
@@ -752,12 +776,12 @@
     if (document.getElementById(TOOLKIT_ID)) {
       return;
     }
+    if (!document.body) {
+      return;
+    }
     const toolbar = buildToolbar();
-    const minimizedButton = buildMinimizedButton();
     document.body.appendChild(toolbar);
-    document.body.appendChild(minimizedButton);
-    applyMinimizedPosition(minimizedButton);
-    enableDrag(minimizedButton);
+    ensureMinimizedButton();
   };
 
   // 标志位：避免重复添加 resize 监听器
@@ -779,8 +803,16 @@
   setupResizeListener();
 
   const observer = new MutationObserver(() => {
-    if (!document.getElementById(TOOLKIT_ID)) {
+    const toolbar = document.getElementById(TOOLKIT_ID);
+    const minimizedButton = document.getElementById(MINIMIZED_ID);
+
+    if (!toolbar) {
       attachToolbar();
+      return;
+    }
+
+    if (!minimizedButton) {
+      ensureMinimizedButton();
     }
   });
 
