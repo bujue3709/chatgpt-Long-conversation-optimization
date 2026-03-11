@@ -81,12 +81,6 @@
 <img src="./image/image2.png" width="500"/>
 <img src="./image/image3.png" width="250"/>
 
-## 请作者喝杯奶茶 🧋
-
-如果这个插件对你有用，欢迎顺手点个 Star ⭐，真的非常感谢！
-
-<img src="./image/收款码.jpg" width="250"/>
-
 ## 可选配置 ⚙️
 
 如需调整会话与时间线参数，可在 `contentScript.js` 中修改：
@@ -102,6 +96,11 @@ const state = {
 const TIMELINE_VISIBLE_NODE_CAPACITY = 10; // 时间线单屏可视容量
 const TIMELINE_MAX_NODES = 20; // 时间线最大采样节点数
 ```
+## 请作者喝杯奶茶 🧋
+
+如果这个插件对你有用，欢迎顺手点个 Star ⭐，真的非常感谢！
+
+<img src="./image/收款码.jpg" width="250"/>
 
 ## 文件说明（非开发可跳过）📁
 
