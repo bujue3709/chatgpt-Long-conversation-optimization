@@ -219,6 +219,238 @@
   }
 }
 
+.chatgpt-toolkit-timeline-target {
+  outline: 3px solid #10a37f !important;
+  outline-offset: 3px;
+  border-radius: 10px;
+  animation: chatgpt-toolkit-timeline-pulse 1.2s ease;
+}
+
+@keyframes chatgpt-toolkit-timeline-pulse {
+  0% {
+    outline-color: #10a37f;
+  }
+  50% {
+    outline-color: #34d399;
+  }
+  100% {
+    outline-color: #10a37f;
+  }
+}
+
+.chatgpt-toolkit-timeline {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 65vh;
+  width: 64px;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.chatgpt-toolkit-timeline.is-dragging {
+  user-select: none;
+}
+
+.chatgpt-toolkit-timeline.is-hidden {
+  display: none;
+}
+
+.chatgpt-toolkit-timeline-panel {
+  position: relative;
+  width: 50px;
+  height: 100%;
+  border-radius: 14px;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  border: 1px solid rgba(75, 85, 99, 0.45);
+  background: rgba(17, 24, 39, 0.82);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.28);
+}
+
+.chatgpt-toolkit-timeline-title {
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: #cbd5e1;
+  margin: 0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  user-select: none;
+}
+
+.chatgpt-toolkit-timeline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  width: 100%;
+  cursor: grab;
+}
+
+.chatgpt-toolkit-timeline.is-dragging .chatgpt-toolkit-timeline-header {
+  cursor: grabbing;
+}
+
+.chatgpt-toolkit-timeline-count {
+  border-radius: 999px;
+  border: 1px solid rgba(100, 116, 139, 0.55);
+  background: rgba(15, 23, 42, 0.42);
+  color: #cbd5e1;
+  padding: 2px 6px;
+  font-size: 10px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+.chatgpt-toolkit-timeline-track {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chatgpt-toolkit-timeline-track::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+.chatgpt-toolkit-timeline-content {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+.chatgpt-toolkit-timeline-content::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: calc(50% - 1px);
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(107, 114, 128, 0.45);
+}
+
+.chatgpt-toolkit-timeline-node {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.chatgpt-toolkit-timeline-node:hover,
+.chatgpt-toolkit-timeline-node.is-active {
+  z-index: 2;
+}
+
+.chatgpt-toolkit-timeline-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: #9ca3af;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.chatgpt-toolkit-timeline-node:hover .chatgpt-toolkit-timeline-dot {
+  transform: translate(-50%, -50%) scale(1.18);
+  background: #10a37f;
+}
+
+.chatgpt-toolkit-timeline-node.is-active .chatgpt-toolkit-timeline-dot {
+  transform: translate(-50%, -50%) scale(1.25);
+  background: #10a37f;
+}
+
+.chatgpt-toolkit-timeline-preview {
+  position: absolute;
+  left: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 240px;
+  max-width: min(320px, 46vw);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.7);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.chatgpt-toolkit-timeline-preview.is-visible {
+  opacity: 1;
+}
+
+.chatgpt-toolkit-timeline.is-flipped .chatgpt-toolkit-timeline-preview {
+  left: auto;
+  right: 60px;
+}
+
+.chatgpt-toolkit-timeline-hint {
+  position: absolute;
+  left: 58px;
+  bottom: -2px;
+  transform: translateY(100%);
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(71, 85, 105, 0.7);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.chatgpt-toolkit-timeline-hint.is-visible {
+  opacity: 1;
+}
+
+.chatgpt-toolkit-timeline.is-flipped .chatgpt-toolkit-timeline-hint {
+  left: auto;
+  right: 58px;
+}
+
+.chatgpt-toolkit-timeline.is-hint-top .chatgpt-toolkit-timeline-hint {
+  top: -2px;
+  bottom: auto;
+  transform: translateY(-100%);
+}
+
 .chatgpt-toolkit-prompt-modal {
   position: fixed;
   inset: 0;
@@ -640,6 +872,71 @@
   background-color: #343541;
   border: 1px solid #565869;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.42);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme="light"] {
+  --timeline-panel-bg: rgba(255, 255, 255, 0.92);
+  --timeline-panel-border: rgba(209, 213, 219, 0.95);
+  --timeline-title: #6b7280;
+  --timeline-track: rgba(156, 163, 175, 0.65);
+  --timeline-count-text: #475569;
+  --timeline-count-bg: rgba(148, 163, 184, 0.22);
+  --timeline-count-border: rgba(148, 163, 184, 0.5);
+  --timeline-dot: #9ca3af;
+  --timeline-dot-active: #10a37f;
+  --timeline-preview-bg: rgba(255, 255, 255, 0.98);
+  --timeline-preview-border: rgba(209, 213, 219, 0.95);
+  --timeline-preview-text: #1f2937;
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme="dark"] {
+  --timeline-panel-bg: rgba(32, 33, 35, 0.88);
+  --timeline-panel-border: rgba(77, 77, 79, 0.95);
+  --timeline-title: #a9abb8;
+  --timeline-track: rgba(107, 114, 128, 0.6);
+  --timeline-count-text: #d1d5db;
+  --timeline-count-bg: rgba(100, 116, 139, 0.28);
+  --timeline-count-border: rgba(100, 116, 139, 0.58);
+  --timeline-dot: #9ca3af;
+  --timeline-dot-active: #10a37f;
+  --timeline-preview-bg: rgba(17, 24, 39, 0.96);
+  --timeline-preview-border: rgba(71, 85, 105, 0.72);
+  --timeline-preview-text: #f8fafc;
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-panel {
+  border-color: var(--timeline-panel-border);
+  background: var(--timeline-panel-bg);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-title {
+  color: var(--timeline-title);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-count {
+  color: var(--timeline-count-text);
+  background: var(--timeline-count-bg);
+  border-color: var(--timeline-count-border);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-content::before {
+  background: var(--timeline-track);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-dot {
+  background: var(--timeline-dot);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-node:hover .chatgpt-toolkit-timeline-dot,
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-node.is-active .chatgpt-toolkit-timeline-dot {
+  background: var(--timeline-dot-active);
+}
+
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-preview,
+.chatgpt-toolkit-timeline[data-toolkit-theme] .chatgpt-toolkit-timeline-hint {
+  color: var(--timeline-preview-text);
+  background: var(--timeline-preview-bg);
+  border-color: var(--timeline-preview-border);
 }
 
 .chatgpt-toolkit-prompt-modal[data-toolkit-theme="light"] {
