@@ -330,6 +330,7 @@ const renderPromptList = () => {
   emptyTip.style.display = "none";
   countLabel.textContent = `${promptState.filteredItems.length} / ${promptState.items.length} 条`;
 
+  const fragment = document.createDocumentFragment();
   promptState.filteredItems.forEach((item) => {
     const itemNode = document.createElement("article");
     itemNode.className = "chatgpt-toolkit-prompt-item";
@@ -368,8 +369,9 @@ const renderPromptList = () => {
     itemNode.appendChild(meta);
     itemNode.appendChild(content);
 
-    listContainer.appendChild(itemNode);
+    fragment.appendChild(itemNode);
   });
+  listContainer.appendChild(fragment);
 };
 
 const copyTextToClipboard = async (text) => {
@@ -489,12 +491,13 @@ const exportPromptLibrary = () => {
   const dateTag = new Date().toISOString().replace(/[:.]/g, "-");
   const filename = `chatgpt-prompts-${dateTag}.json`;
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
+  link.href = objectUrl;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   updateStatus("Prompt 指令已导出为 JSON。", "success");
 };
 

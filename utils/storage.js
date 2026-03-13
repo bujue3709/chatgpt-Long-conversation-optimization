@@ -5,7 +5,11 @@ const getExtensionStorageArea = () =>
   typeof chrome !== "undefined" && chrome?.storage?.local ? chrome.storage.local : null;
 
 const saveMinimizedPosition = (position) => {
-  localStorage.setItem(POSITION_KEY, JSON.stringify(position));
+  try {
+    localStorage.setItem(POSITION_KEY, JSON.stringify(position));
+  } catch (error) {
+    // Ignore storage write failures.
+  }
 };
 
 const saveTimelineVisibility = (visible) => {

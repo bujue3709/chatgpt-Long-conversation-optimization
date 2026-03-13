@@ -123,36 +123,24 @@ const buildToolbar = () => {
     if (!action) {
       return;
     }
-    if (action === "minimize") {
-      minimizeToolbar();
-    }
-    if (action === "collapse") {
-      collapseOldMessages();
-    }
-    if (action === "restore") {
-      restoreMessages();
-    }
-    if (action === "export") {
-      exportMessages();
-    }
-    if (action === "prompt-library") {
-      void openPromptModal();
-    }
-    if (action === "timeline-toggle") {
-      toggleTimelineVisibility();
-    }
-    if (action === "search") {
-      const input = document.getElementById('chatgpt-toolkit-search-input');
-      if (input) {
-        performSearch(input.value);
-      }
-    }
-    if (action === "search-prev") {
-      navigateToPrevMatch();
-    }
-    if (action === "search-next") {
-      navigateToNextMatch();
-    }
+
+    const actionHandlers = {
+      minimize: () => minimizeToolbar(),
+      collapse: () => collapseOldMessages(),
+      restore: () => restoreMessages(),
+      export: () => exportMessages(),
+      "prompt-library": () => void openPromptModal(),
+      "timeline-toggle": () => toggleTimelineVisibility(),
+      search: () => {
+        const input = document.getElementById('chatgpt-toolkit-search-input');
+        if (input) performSearch(input.value);
+      },
+      "search-prev": () => navigateToPrevMatch(),
+      "search-next": () => navigateToNextMatch(),
+    };
+
+    const handler = actionHandlers[action];
+    if (handler) handler();
   });
 
   // 监听搜索输入框的回车事件
@@ -318,7 +306,7 @@ const enableDrag = (button) => {
     applyDragTransform(button, translateX, translateY, baseTransform);
   });
 
-  const onMouseMove = (event) => {
+  const onPointerMove = (event) => {
     if (!isDragging) {
       return;
     }
@@ -355,14 +343,15 @@ const enableDrag = (button) => {
     });
   };
 
-  const onMouseUp = () => {
+  const onPointerUp = () => {
     if (!isDragging) {
       return;
     }
     isDragging = false;
     minimizedButtonState.pointerDown = false;
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    document.removeEventListener("pointercancel", onPointerUp);
     dragController.cancel();
     minimizedButtonState.dragging = false;
     button.classList.remove("is-pointer-down");
@@ -388,7 +377,8 @@ const enableDrag = (button) => {
     }, 0);
   };
 
-  button.addEventListener("mousedown", (event) => {
+  button.style.touchAction = "none";
+  button.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) {
       return;
     }
@@ -407,8 +397,9 @@ const enableDrag = (button) => {
     startX = event.clientX;
     startY = event.clientY;
     resetDragTransform(button, baseTransform);
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
   });
 
   button.addEventListener("click", () => {

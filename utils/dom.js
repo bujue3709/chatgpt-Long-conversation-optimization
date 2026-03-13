@@ -109,7 +109,7 @@ const detectRole = (node) => {
   if (node?.querySelector('img[alt*="User"], svg[aria-label*="User"]')) {
     return "user";
   }
-  return "assistant";
+  return "unknown";
 };
 
 const extractMessageText = (node) => {

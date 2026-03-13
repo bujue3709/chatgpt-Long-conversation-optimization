@@ -39,7 +39,9 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
   renderTimeline();
   setupResizeListener();
 
-  const observer = new MutationObserver(() => {
+  let observerRafId = 0;
+
+  const observerCallback = () => {
     if (timelineState.pointerDown || timelineState.dragging) {
       timelineState.refreshPending = true;
       return;
@@ -78,6 +80,21 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
     observeThemeOnBodyIfNeeded();
     syncToolkitTheme();
     scheduleTimelineRefresh();
+  };
+
+  const observer = new MutationObserver(() => {
+    // 跳过由插件自身渲染触发的 DOM 变更，防止无限循环
+    if (window.__toolkitIsRendering) {
+      return;
+    }
+    // 使用 requestAnimationFrame 节流，避免频繁执行
+    if (observerRafId) {
+      return;
+    }
+    observerRafId = requestAnimationFrame(() => {
+      observerRafId = 0;
+      observerCallback();
+    });
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });

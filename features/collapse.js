@@ -25,10 +25,13 @@ const collapseOldMessages = () => {
   toCollapse.forEach((node) => node.remove());
 
   // 清除搜索状态和高亮
+  clearTextHighlights();
   clearSearchHighlight();
   state.searchQuery = '';
   state.searchMatches = [];
   state.currentMatchIndex = -1;
+  const searchInput = document.getElementById('chatgpt-toolkit-search-input');
+  if (searchInput) searchInput.value = '';
   updateSearchUI();
 
   state.isCollapsed = true;
@@ -81,7 +84,23 @@ const restoreMessages = () => {
     requestAnimationFrame(() => {
       const newRect = anchorElement.getBoundingClientRect();
       const scrollDelta = newRect.top - anchorOffsetTop;
-      window.scrollBy(0, scrollDelta);
+      // 检测 ChatGPT 实际滚动容器（通常是 main 内的可滚动 div，而非 window）
+      let scrollContainer = null;
+      let el = anchorElement.parentElement;
+      while (el && el !== document.documentElement) {
+        const style = window.getComputedStyle(el);
+        const overflowY = style.overflowY;
+        if ((overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight) {
+          scrollContainer = el;
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (scrollContainer) {
+        scrollContainer.scrollTop += scrollDelta;
+      } else {
+        window.scrollBy(0, scrollDelta);
+      }
     });
   }
 

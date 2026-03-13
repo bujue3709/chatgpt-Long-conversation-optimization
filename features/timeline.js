@@ -623,7 +623,7 @@ const enableTimelineDrag = (timeline) => {
     applyDragTransform(timeline, translateX, translateY, transform);
   });
 
-  const onMouseMove = (event) => {
+  const onPointerMove = (event) => {
     if (!isDragging) {
       return;
     }
@@ -669,14 +669,15 @@ const enableTimelineDrag = (timeline) => {
     });
   };
 
-  const stopDragging = () => {
+  const stopDragging = (event) => {
     if (!isDragging) {
       return;
     }
     isDragging = false;
     timelineState.pointerDown = false;
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", stopDragging);
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", stopDragging);
+    document.removeEventListener("pointercancel", stopDragging);
     if (moved) {
       dragController.cancel();
       setTimelineManualPosition(timeline, pendingLeft, pendingTop, {
@@ -703,7 +704,8 @@ const enableTimelineDrag = (timeline) => {
     }
   };
 
-  header.addEventListener("mousedown", (event) => {
+  header.style.touchAction = "none";
+  header.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) {
       return;
     }
@@ -733,31 +735,29 @@ const enableTimelineDrag = (timeline) => {
       ? timeline.style.transform
       : "";
     resetDragTransform(timeline, baseTransform);
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", stopDragging);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", stopDragging);
+    document.addEventListener("pointercancel", stopDragging);
   });
 };
 
 const handleTimelineWheel = (event) => {
-  event.preventDefault();
-  event.stopPropagation();
-
   const elements = getTimelineElements();
   const track = elements?.track;
   if (!(track instanceof HTMLElement)) {
     return;
   }
-
-  if (timelineState.items.length === 0) {
-    showTimelineHint(state.isCollapsed ? "请恢复隐藏消息" : "已经没有消息了");
+  const maxScrollTop = getTimelineTrackMaxScrollTop(track);
+  // 仅在时间线有可滚动内容时阻止默认滚动
+  if (maxScrollTop > 1) {
+    event.preventDefault();
+    event.stopPropagation();
+  } else {
     return;
   }
 
-  const maxScrollTop = getTimelineTrackMaxScrollTop(track);
-  if (maxScrollTop <= 1) {
-    if (event.deltaY < 0) {
-      showTimelineHint(state.isCollapsed ? "请恢复隐藏消息" : "已经没有消息了");
-    }
+  if (timelineState.items.length === 0) {
+    showTimelineHint(state.isCollapsed ? "请恢复隐藏消息" : "已经没有消息了");
     return;
   }
 
@@ -979,6 +979,9 @@ const renderTimeline = () => {
     return;
   }
   timelineState.refreshPending = false;
+  // 标记正在渲染，防止 MutationObserver 循环触发
+  window.__toolkitIsRendering = true;
+  try {
   const timeline = ensureTimeline();
   if (!timeline) {
     return;
@@ -995,7 +998,7 @@ const renderTimeline = () => {
 
   const elements = getTimelineElements();
   const track = elements?.track;
-  const content = ensureTimelineTrackContent(elements?.content || track);
+  const content = elements?.content || ensureTimelineTrackContent(track);
   if (!(track instanceof HTMLElement) || !(content instanceof HTMLElement)) {
     return;
   }
@@ -1083,6 +1086,9 @@ const renderTimeline = () => {
     } else {
       hideTimelinePreview();
     }
+  }
+  } finally {
+    window.__toolkitIsRendering = false;
   }
 };
 

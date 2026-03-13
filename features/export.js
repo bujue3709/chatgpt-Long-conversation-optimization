@@ -24,12 +24,13 @@ const exportMessages = () => {
   const filename = `chatgpt-session-${dateTag}.json`;
 
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
+  link.href = objectUrl;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(link.href);
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 
   updateStatus("导出已开始，请检查下载文件。", "success");
 };
