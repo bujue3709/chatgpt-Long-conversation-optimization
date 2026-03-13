@@ -10,6 +10,16 @@
         "https://chatgpt.com/*"
       ],
       "js": [
+        "core/state.js",
+        "utils/storage.js",
+        "utils/dom.js",
+        "ui/theme.js",
+        "features/search.js",
+        "features/timeline.js",
+        "features/prompt-library.js",
+        "features/collapse.js",
+        "features/export.js",
+        "ui/toolbar.js",
         "contentScript.js"
       ],
       "css": [

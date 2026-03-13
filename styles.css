@@ -120,6 +120,11 @@
   display: flex;
 }
 
+.chatgpt-toolkit-minimized.is-dragging {
+  will-change: left, top;
+  backdrop-filter: none;
+}
+
 /* 搜索功能样式 */
 #chatgpt-conversation-toolkit .chatgpt-toolkit-search {
   margin-top: 10px;
@@ -253,6 +258,11 @@
 
 .chatgpt-toolkit-timeline.is-dragging {
   user-select: none;
+  will-change: left, top;
+}
+
+.chatgpt-toolkit-timeline.is-dragging .chatgpt-toolkit-timeline-panel {
+  backdrop-filter: none;
 }
 
 .chatgpt-toolkit-timeline.is-hidden {
