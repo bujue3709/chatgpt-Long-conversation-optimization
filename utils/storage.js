@@ -70,4 +70,58 @@ const loadMinimizedPosition = () => {
   }
 };
 
+const saveFolderSnapshot = (snapshot) => {
+  try {
+    localStorage.setItem(FOLDER_LOCAL_FALLBACK_KEY, JSON.stringify(snapshot));
+  } catch (error) {
+    // Ignore storage write failures.
+  }
+
+  const storageArea = getExtensionStorageArea();
+  if (!storageArea) {
+    return;
+  }
+
+  try {
+    storageArea.set({ [FOLDER_STORAGE_KEY]: snapshot }, () => {
+      void chrome?.runtime?.lastError;
+    });
+  } catch (error) {
+    // Ignore storage write failures.
+  }
+};
+
+const loadFolderSnapshot = () => {
+  try {
+    const stored = localStorage.getItem(FOLDER_LOCAL_FALLBACK_KEY);
+    if (!stored) {
+      return null;
+    }
+    return JSON.parse(stored);
+  } catch (error) {
+    return null;
+  }
+};
+
+const loadFolderSnapshotFromExtension = () =>
+  new Promise((resolve) => {
+    const storageArea = getExtensionStorageArea();
+    if (!storageArea) {
+      resolve(null);
+      return;
+    }
+
+    try {
+      storageArea.get([FOLDER_STORAGE_KEY], (result) => {
+        if (chrome?.runtime?.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(result?.[FOLDER_STORAGE_KEY] || null);
+      });
+    } catch (error) {
+      resolve(null);
+    }
+  });
+
 

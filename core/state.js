@@ -26,6 +26,11 @@ const PROMPT_FILE_INPUT_ID = "chatgpt-toolkit-prompt-file";
 const PROMPT_TOAST_ID = "chatgpt-toolkit-prompt-toast";
 const PROMPT_STORAGE_KEY = "chatgpt-toolkit-prompts-v1";
 const PROMPT_LOCAL_FALLBACK_KEY = "chatgpt-toolkit-prompts-fallback";
+const FOLDER_MANAGER_ID = "chatgpt-toolkit-folder-manager";
+const FOLDER_MENU_ID = "chatgpt-toolkit-folder-menu";
+const FOLDER_STORAGE_KEY = "chatgpt-toolkit-folders-v1";
+const FOLDER_LOCAL_FALLBACK_KEY = "chatgpt-toolkit-folders-fallback";
+const FOLDER_ROOT_ATTR = "data-toolkit-folder-root";
 
 const state = {
   isCollapsed: false,
@@ -71,10 +76,26 @@ const timelineState = {
   dragging: false,
   refreshPending: false,
 };
+const folderState = {
+  initialized: false,
+  loaded: false,
+  folders: [],
+  assignments: {},
+  section: null,
+  headerButton: null,
+  history: null,
+  menuFolderId: null,
+  draggingConversationId: null,
+  currentDropZoneKey: "",
+  refreshQueued: false,
+  refreshPending: false,
+};
 let promptToastTimer = null;
 let timelineHintTimer = null;
 let timelineHighlightTimer = null;
 let timelineRefreshTimer = null;
+let folderHighlightTimer = null;
+let folderSettledRefreshTimer = null;
 let timelineScrollTicking = false;
 let timelineScrollListenerAdded = false;
 let themeObserver = null;

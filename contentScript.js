@@ -27,14 +27,17 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
       }
       if (timelineState.pointerDown || timelineState.dragging) {
         timelineState.refreshPending = true;
-        return;
+      } else {
+        updateTimelinePosition();
+        scheduleTimelineRefresh();
       }
-      updateTimelinePosition();
-      scheduleTimelineRefresh();
+      closeFolderMenu();
+      scheduleFolderRefresh();
     });
   };
 
   setupThemeSync();
+  initFolders();
   attachToolbar();
   renderTimeline();
   setupResizeListener();
@@ -56,6 +59,7 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
       attachToolbar();
       observeThemeOnBodyIfNeeded();
       syncToolkitTheme();
+      scheduleFolderRefresh();
       scheduleTimelineRefresh();
       return;
     }
@@ -79,6 +83,7 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
 
     observeThemeOnBodyIfNeeded();
     syncToolkitTheme();
+    scheduleFolderRefresh();
     scheduleTimelineRefresh();
   };
 

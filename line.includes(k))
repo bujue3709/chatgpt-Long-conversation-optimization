@@ -1,0 +1,1 @@
+['folderSettledRefreshTimer'].forEach(k= i=lines.findIndex(line=; console.log(k+':' +(i+1));});) 

@@ -19,6 +19,7 @@
         "utils/storage.js",
         "utils/dom.js",
         "ui/theme.js",
+        "features/folders.js",
         "features/search.js",
         "features/timeline.js",
         "features/prompt-library.js",

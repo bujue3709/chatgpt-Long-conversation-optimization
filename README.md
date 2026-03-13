@@ -1,6 +1,6 @@
 # ChatGPT Conversation Toolkit 🧰✨
 
-适用于 `ChatGPT Web` 的浏览器插件，主要解决长会话浏览、导出、搜索、Prompt 管理和时间线定位问题 🚀
+适用于 `ChatGPT Web` 的浏览器插件，主要解决长会话浏览、导出、搜索、Prompt 管理、时间线定位和对话文件夹管理问题 🚀
 
 当前支持站点 🌐
 
@@ -14,6 +14,7 @@
 - 🔍 消息搜索：按关键词搜索当前对话内容，支持高亮和前后跳转。
 - 📚 Prompt 指令库：支持新增、删除、搜索、分类、排序、导入 JSON、导出 JSON、单击复制。
 - 🕒 对话时间线：基于当前页面已加载的用户消息生成时间节点，支持预览、点击跳转、节点计数、显示/隐藏、拖拽移动。
+- 📁 对话文件夹：在“你的聊天”上方提供极简文件夹管理条，支持新建、重命名、删除、折叠/展开、拖拽归类、移回未分组，并保留原生会话菜单能力。
 - 🎨 主题同步：工具栏、时间线、Prompt 弹窗跟随 ChatGPT 明暗主题。
 - 🧲 拖拽浮层：工具栏最小化按钮和时间线组件都支持拖拽移动。
 
@@ -108,6 +109,23 @@
   - 单击复制内容 📋
 - 复制成功后会显示提示 ✅
 
+### 7. 对话文件夹 📁
+
+- 文件夹管理条会显示在侧边栏“你的聊天”标题上方。
+- 支持点击 `新建` 创建文件夹。
+- 点击文件夹头可折叠 / 展开当前文件夹下的会话。
+- 点击文件夹右侧菜单可进行：
+  - 重命名 ✏️
+  - 删除 🗑️
+- 支持把未分组会话拖到某个文件夹中。
+- 支持把文件夹内会话拖回 `未分组`。
+- 拖拽命中范围包括：
+  - 文件夹头
+  - 文件夹内会话区域
+  - 文件夹管理的可见会话段空白区域
+- 文件夹只对侧边栏会话做本地分类和排序，不会替换原生会话节点，因此原生的重命名、归档、更多菜单仍然可用 ✅
+- 文件夹、归类关系和折叠状态会自动持久化，刷新页面后恢复 💾
+
 ## 请作者喝杯奶茶 🧋
 如果这个插件对你有用，欢迎顺手点个 Star ⭐，真的非常感谢！
 
@@ -124,6 +142,7 @@ core/
 features/
   collapse.js
   export.js
+  folders.js
   search.js
   timeline.js
   prompt-library.js
@@ -157,6 +176,8 @@ manifest.json
   - 长会话折叠与恢复 🧹
 - [features/export.js](/C:/Users/marke/Desktop/插件/chatgpt-Long-conversation-optimization-main/features/export.js)
   - 会话导出 📦
+- [features/folders.js](/C:/Users/marke/Desktop/插件/chatgpt-Long-conversation-optimization-main/features/folders.js)
+  - 侧边栏对话文件夹管理、拖拽归类、本地持久化恢复 📁
 - [features/search.js](/C:/Users/marke/Desktop/插件/chatgpt-Long-conversation-optimization-main/features/search.js)
   - 消息搜索与跳转 🔍
 - [features/timeline.js](/C:/Users/marke/Desktop/插件/chatgpt-Long-conversation-optimization-main/features/timeline.js)
@@ -305,6 +326,7 @@ Prompt 指令库导出为对象格式：
 
 - 时间线只基于当前页面已经加载出来的消息节点，不会主动把 ChatGPT 未渲染的历史消息拉出来。
 - 搜索功能只对当前页面存在的消息 DOM 生效；若消息已被折叠，需要先恢复隐藏消息。
+- 文件夹管理基于当前 ChatGPT 侧边栏 DOM 结构实现，本地保存分类关系，不会同步到 ChatGPT 服务端。
 - 不同 ChatGPT 页面版本可能调整 DOM 结构，少数选择器可能需要跟进适配。
 
 ## 许可与使用 📄

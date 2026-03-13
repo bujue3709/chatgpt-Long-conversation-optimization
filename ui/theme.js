@@ -67,6 +67,9 @@ const applyToolkitTheme = (theme) => {
     document.getElementById(MINIMIZED_ID),
     document.getElementById(TIMELINE_ID),
     document.getElementById(PROMPT_MODAL_ID),
+    document.getElementById(FOLDER_MANAGER_ID),
+    document.getElementById(FOLDER_MENU_ID),
+    document.querySelector(`[${FOLDER_ROOT_ATTR}="1"]`),
   ];
 
   nodes.forEach((node) => {
