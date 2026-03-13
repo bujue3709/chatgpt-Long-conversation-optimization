@@ -202,3 +202,21 @@ const createRafDragController = (applyPosition) => {
     },
   };
 };
+
+const applyDragTransform = (element, translateX, translateY, baseTransform = "") => {
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+  const translate = `translate3d(${Math.round(translateX)}px, ${Math.round(translateY)}px, 0)`;
+  element.style.transform =
+    baseTransform && baseTransform !== "none"
+      ? `${baseTransform} ${translate}`
+      : translate;
+};
+
+const resetDragTransform = (element, baseTransform = "") => {
+  if (!(element instanceof HTMLElement)) {
+    return;
+  }
+  element.style.transform = baseTransform && baseTransform !== "none" ? baseTransform : "";
+};

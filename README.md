@@ -44,8 +44,6 @@
 
 ![插件示意图](/image/image.png)
 
-<img src="./image/image2.png" width="500"/>
-<img src="./image/image3.png" width="250"/>
 
 ## 使用说明 ▶️
 

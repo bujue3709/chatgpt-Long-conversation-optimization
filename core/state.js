@@ -42,6 +42,11 @@ const state = {
   currentMatchIndex: -1,
 };
 
+const minimizedButtonState = {
+  pointerDown: false,
+  dragging: false,
+};
+
 const promptState = {
   loaded: false,
   isOpen: false,
@@ -62,6 +67,9 @@ const timelineState = {
   rendered: false,
   visible: true,
   manualPosition: null,
+  pointerDown: false,
+  dragging: false,
+  refreshPending: false,
 };
 let promptToastTimer = null;
 let timelineHintTimer = null;

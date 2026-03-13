@@ -234,10 +234,19 @@ const compressTimelineWheelDelta = (delta) => {
   return delta > 0 ? distance : -distance;
 };
 
+const isTimelineInteractionLocked = () => timelineState.pointerDown || timelineState.dragging;
+
+const markTimelineRefreshPending = () => {
+  timelineState.refreshPending = true;
+};
+
 const updateTimelineBubblePlacement = () => {
   const elements = getTimelineElements();
   const timeline = elements?.timeline;
   if (!(timeline instanceof HTMLElement)) {
+    return;
+  }
+  if (isTimelineInteractionLocked()) {
     return;
   }
 
@@ -424,6 +433,9 @@ const getTimelineItemsFromMessages = () => {
 };
 
 const syncTimelineActiveFromViewport = () => {
+  if (isTimelineInteractionLocked()) {
+    return;
+  }
   if (timelineState.items.length === 0) {
     return;
   }
@@ -452,6 +464,9 @@ const syncTimelineActiveFromViewport = () => {
 };
 
 const onTimelineWindowScroll = () => {
+  if (isTimelineInteractionLocked()) {
+    return;
+  }
   if (timelineScrollTicking) {
     return;
   }
@@ -499,6 +514,9 @@ const updateTimelinePosition = () => {
   if (!(timeline instanceof HTMLElement)) {
     return;
   }
+  if (isTimelineInteractionLocked()) {
+    return;
+  }
 
   if (
     timelineState.manualPosition &&
@@ -529,11 +547,20 @@ const updateTimelinePosition = () => {
   }
 
   const rightEdge = getSidebarRightEdge();
+  const rect = timeline.getBoundingClientRect();
+  const width = rect.width || timeline.offsetWidth || 64;
+  const height = rect.height || timeline.offsetHeight || Math.round(window.innerHeight * 0.65);
   const maxLeft = Math.max(8, window.innerWidth - 80);
   const left = Math.min(maxLeft, Math.max(8, Math.round(rightEdge + 10)));
+  const maxTop = Math.max(TIMELINE_DRAG_MARGIN, window.innerHeight - height - TIMELINE_DRAG_MARGIN);
+  const top = clampTimelineValue(
+    Math.round((window.innerHeight - height) / 2),
+    TIMELINE_DRAG_MARGIN,
+    maxTop
+  );
   timeline.style.left = `${left}px`;
-  timeline.style.top = "50%";
-  timeline.style.transform = "translateY(-50%)";
+  timeline.style.top = `${top}px`;
+  timeline.style.transform = "none";
   updateTimelineBubblePlacement();
 };
 
@@ -587,17 +614,13 @@ const enableTimelineDrag = (timeline) => {
   let startY = 0;
   let startLeft = 0;
   let startTop = 0;
+  let pendingLeft = 0;
+  let pendingTop = 0;
   let dragBounds = null;
+  let baseTransform = "";
 
-  const dragController = createRafDragController(({ left, top }) => {
-    if (!dragBounds) {
-      return;
-    }
-    setTimelineManualPosition(timeline, left, top, {
-      persist: false,
-      updateBubble: false,
-      bounds: dragBounds,
-    });
+  const dragController = createRafDragController(({ translateX, translateY, transform }) => {
+    applyDragTransform(timeline, translateX, translateY, transform);
   });
 
   const onMouseMove = (event) => {
@@ -609,21 +632,40 @@ const enableTimelineDrag = (timeline) => {
     const deltaY = event.clientY - startY;
 
     if (!moved) {
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      if (distance < TIMELINE_DRAG_THRESHOLD) {
+      const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+      if (distanceSquared < TIMELINE_DRAG_THRESHOLD * TIMELINE_DRAG_THRESHOLD) {
         return;
       }
       moved = true;
+      timelineState.dragging = true;
       timeline.classList.add("is-dragging");
-      timeline.style.willChange = "left, top";
+      timeline.style.willChange = "transform";
+      timeline.style.pointerEvents = "none";
       hideTimelinePreview();
       hideTimelineHint();
       document.documentElement.style.userSelect = "none";
     }
 
+    if (!dragBounds) {
+      return;
+    }
+
+    const nextLeft = clampTimelineValue(
+      startLeft + deltaX,
+      TIMELINE_DRAG_MARGIN,
+      dragBounds.maxLeft
+    );
+    const nextTop = clampTimelineValue(
+      startTop + deltaY,
+      TIMELINE_DRAG_MARGIN,
+      dragBounds.maxTop
+    );
+    pendingLeft = nextLeft;
+    pendingTop = nextTop;
     dragController.schedule({
-      left: startLeft + deltaX,
-      top: startTop + deltaY,
+      translateX: nextLeft - startLeft,
+      translateY: nextTop - startTop,
+      transform: baseTransform,
     });
   };
 
@@ -632,19 +674,33 @@ const enableTimelineDrag = (timeline) => {
       return;
     }
     isDragging = false;
+    timelineState.pointerDown = false;
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", stopDragging);
-    dragController.flush();
+    if (moved) {
+      dragController.cancel();
+      setTimelineManualPosition(timeline, pendingLeft, pendingTop, {
+        persist: true,
+        updateBubble: true,
+        bounds: dragBounds,
+      });
+    } else {
+      dragController.cancel();
+      resetDragTransform(timeline, baseTransform);
+    }
+
+    timelineState.dragging = false;
     timeline.classList.remove("is-dragging");
     timeline.style.willChange = "";
+    timeline.style.pointerEvents = "";
     document.documentElement.style.userSelect = "";
-
-    if (moved && timelineState.manualPosition) {
-      saveTimelinePosition(timelineState.manualPosition);
-      updateTimelineBubblePlacement();
-    }
     dragBounds = null;
+    baseTransform = "";
     moved = false;
+    if (timelineState.refreshPending) {
+      timelineState.refreshPending = false;
+      scheduleTimelineRefresh();
+    }
   };
 
   header.addEventListener("mousedown", (event) => {
@@ -663,11 +719,20 @@ const enableTimelineDrag = (timeline) => {
       maxTop: Math.max(TIMELINE_DRAG_MARGIN, window.innerHeight - height - TIMELINE_DRAG_MARGIN),
     };
     isDragging = true;
+    timelineState.pointerDown = true;
     moved = false;
     startX = event.clientX;
     startY = event.clientY;
     startLeft = rect.left;
     startTop = rect.top;
+    pendingLeft = rect.left;
+    pendingTop = rect.top;
+    hideTimelinePreview();
+    hideTimelineHint();
+    baseTransform = timeline.style.transform && timeline.style.transform !== "none"
+      ? timeline.style.transform
+      : "";
+    resetDragTransform(timeline, baseTransform);
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", stopDragging);
   });
@@ -763,6 +828,7 @@ const handleTimelineMouseMove = (event) => {
 
   const index = resolveTimelineNodeIndex(event.target);
   if (index < 0) {
+    hideTimelinePreview();
     return;
   }
   if (index === timelineState.hoverIndex) {
@@ -908,6 +974,11 @@ const ensureTimeline = () => {
 
 const renderTimeline = () => {
   ensureConversationState();
+  if (isTimelineInteractionLocked()) {
+    markTimelineRefreshPending();
+    return;
+  }
+  timelineState.refreshPending = false;
   const timeline = ensureTimeline();
   if (!timeline) {
     return;
@@ -1016,11 +1087,19 @@ const renderTimeline = () => {
 };
 
 const scheduleTimelineRefresh = () => {
+  if (isTimelineInteractionLocked()) {
+    markTimelineRefreshPending();
+    return;
+  }
   if (timelineRefreshTimer) {
     return;
   }
   timelineRefreshTimer = setTimeout(() => {
     timelineRefreshTimer = null;
+    if (isTimelineInteractionLocked()) {
+      markTimelineRefreshPending();
+      return;
+    }
     renderTimeline();
   }, 120);
 };

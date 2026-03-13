@@ -1,47 +1,48 @@
 /*
  * ChatGPT Conversation Toolkit - Toolbar and drag behavior
  */
-const snapToEdge = (button, savePosition = true) => {
-  const rect = button.getBoundingClientRect();
+const getSnappedFloatingButtonPlacement = (left, top, width, height) => {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const buttonWidth = rect.width;
-  const buttonHeight = rect.height;
+  const margin = 16;
+  const centerX = left + width / 2;
+  const edge = centerX <= viewportWidth / 2 ? "left" : "right";
+  const nextTop = clampFloatingButtonPosition(left, top, width, height).top;
 
-  // 计算按钮中心点到左右边缘的距离
-  const centerX = rect.left + buttonWidth / 2;
-  const distanceToLeft = centerX;
-  const distanceToRight = viewportWidth - centerX;
+  return {
+    edge,
+    top: Math.min(nextTop, Math.max(margin, viewportHeight - height - margin)),
+  };
+};
 
-  // 确定贴合到哪个边缘
-  const edge = distanceToLeft <= distanceToRight ? 'left' : 'right';
-
-  // 获取当前 top 值，并确保在可视区域内
-  let top = rect.top;
-  const margin = 16; // 边距
-
-  // 确保 top 不会让按钮超出可视区域
-  if (top < margin) {
-    top = margin;
-  } else if (top + buttonHeight > viewportHeight - margin) {
-    top = viewportHeight - buttonHeight - margin;
+const applySnappedFloatingButtonPlacement = (button, placement, savePosition = true) => {
+  if (!(button instanceof HTMLElement) || !placement) {
+    return;
   }
 
-  // 应用贴合位置
-  if (edge === 'left') {
-    button.style.left = `${margin}px`;
-    button.style.right = 'auto';
+  button.style.transform = "";
+  if (placement.edge === "left") {
+    button.style.left = "16px";
+    button.style.right = "auto";
   } else {
-    button.style.left = 'auto';
-    button.style.right = `${margin}px`;
+    button.style.left = "auto";
+    button.style.right = "16px";
   }
-  button.style.top = `${top}px`;
-  button.style.bottom = 'auto';
+  button.style.top = `${Math.round(placement.top)}px`;
+  button.style.bottom = "auto";
 
-  // 保存位置
   if (savePosition) {
-    saveMinimizedPosition({ edge, top });
+    saveMinimizedPosition({
+      edge: placement.edge,
+      top: Math.round(placement.top),
+    });
   }
+};
+
+const snapToEdge = (button, savePosition = true) => {
+  const rect = button.getBoundingClientRect();
+  const placement = getSnappedFloatingButtonPlacement(rect.left, rect.top, rect.width, rect.height);
+  applySnappedFloatingButtonPlacement(button, placement, savePosition);
 };
 
 const ensureButtonVisible = (button) => {
@@ -69,6 +70,7 @@ const buildToolbar = () => {
   container.innerHTML = `
     <div class="chatgpt-toolkit-header">
       <strong>ChatGPT 工具</strong>
+      <span class="chatgpt-toolkit-subtitle">长会话 · 搜索 · 导出 · 时间线</span>
       <button type="button" class="chatgpt-toolkit-minimize" data-action="minimize" aria-label="收起工具">
         收起
       </button>
@@ -93,12 +95,12 @@ const buildToolbar = () => {
     <div class="chatgpt-toolkit-search">
       <div class="chatgpt-toolkit-search-row">
         <input type="text" id="chatgpt-toolkit-search-input" class="chatgpt-toolkit-search-input" placeholder="搜索消息内容..." />
-        <button type="button" class="chatgpt-toolkit-search-btn" data-action="search" title="搜索">🔍</button>
+        <button type="button" class="chatgpt-toolkit-search-btn" data-action="search" title="搜索">搜索</button>
       </div>
       <div class="chatgpt-toolkit-search-nav">
-        <button type="button" id="chatgpt-toolkit-search-prev" class="chatgpt-toolkit-nav-btn" data-action="search-prev" disabled title="上一条">◀</button>
+        <button type="button" id="chatgpt-toolkit-search-prev" class="chatgpt-toolkit-nav-btn" data-action="search-prev" disabled title="上一条">上一条</button>
         <span id="chatgpt-toolkit-search-result" class="chatgpt-toolkit-search-result"></span>
-        <button type="button" id="chatgpt-toolkit-search-next" class="chatgpt-toolkit-nav-btn" data-action="search-next" disabled title="下一条">▶</button>
+        <button type="button" id="chatgpt-toolkit-search-next" class="chatgpt-toolkit-nav-btn" data-action="search-next" disabled title="下一条">下一条</button>
       </div>
     </div>
     <p id="${STATUS_ID}" class="chatgpt-toolkit-status" data-tone="info">准备就绪。</p>
@@ -170,6 +172,7 @@ const buildMinimizedButton = () => {
   button.type = "button";
   button.className = "chatgpt-toolkit-minimized";
   button.setAttribute("aria-label", "展开 ChatGPT 工具");
+  button.innerHTML = `<span class="chatgpt-toolkit-minimized-mark" aria-hidden="true">GPT</span>`;
   return button;
 };
 
@@ -300,16 +303,19 @@ const enableDrag = (button) => {
   const DRAG_THRESHOLD = 5; // 拖拽阈值：超过5px才判定为拖拽
   let isDragging = false;
   let moved = false;
+  let suppressClick = false;
   let startX = 0;
   let startY = 0;
   let startLeft = 0;
   let startTop = 0;
+  let pendingLeft = 0;
+  let pendingTop = 0;
   let buttonWidth = 48;
   let buttonHeight = 48;
+  const baseTransform = "";
 
-  const dragController = createRafDragController(({ left, top }) => {
-    const nextPosition = clampFloatingButtonPosition(left, top, buttonWidth, buttonHeight);
-    applyFloatingButtonPosition(button, nextPosition.left, nextPosition.top);
+  const dragController = createRafDragController(({ translateX, translateY }) => {
+    applyDragTransform(button, translateX, translateY, baseTransform);
   });
 
   const onMouseMove = (event) => {
@@ -322,19 +328,30 @@ const enableDrag = (button) => {
 
     // 只有超过阈值才判定为拖拽
     if (!moved) {
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-      if (distance < DRAG_THRESHOLD) {
+      const distanceSquared = deltaX * deltaX + deltaY * deltaY;
+      if (distanceSquared < DRAG_THRESHOLD * DRAG_THRESHOLD) {
         return; // 未超过阈值，不算拖拽
       }
       moved = true; // 超过阈值，标记为拖拽
+      suppressClick = true;
+      minimizedButtonState.dragging = true;
       button.classList.add("is-dragging");
-      button.style.willChange = "left, top";
+      button.style.willChange = "transform";
+      button.style.pointerEvents = "none";
       document.documentElement.style.userSelect = "none";
     }
 
+    const nextPosition = clampFloatingButtonPosition(
+      startLeft + deltaX,
+      startTop + deltaY,
+      buttonWidth,
+      buttonHeight
+    );
+    pendingLeft = nextPosition.left;
+    pendingTop = nextPosition.top;
     dragController.schedule({
-      left: startLeft + deltaX,
-      top: startTop + deltaY,
+      translateX: nextPosition.left - startLeft,
+      translateY: nextPosition.top - startTop,
     });
   };
 
@@ -343,20 +360,31 @@ const enableDrag = (button) => {
       return;
     }
     isDragging = false;
+    minimizedButtonState.pointerDown = false;
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
-    dragController.flush();
+    dragController.cancel();
+    minimizedButtonState.dragging = false;
+    button.classList.remove("is-pointer-down");
     button.classList.remove("is-dragging");
     button.style.willChange = "";
+    button.style.pointerEvents = "";
     document.documentElement.style.userSelect = "";
 
     // 只有实际拖动了才贴合边缘
     if (moved) {
-      snapToEdge(button, true);
+      applySnappedFloatingButtonPlacement(
+        button,
+        getSnappedFloatingButtonPlacement(pendingLeft, pendingTop, buttonWidth, buttonHeight),
+        true
+      );
+    } else {
+      resetDragTransform(button, baseTransform);
     }
 
     setTimeout(() => {
       moved = false;
+      suppressClick = false;
     }, 0);
   };
 
@@ -366,20 +394,26 @@ const enableDrag = (button) => {
     }
     event.preventDefault();
     isDragging = true;
+    minimizedButtonState.pointerDown = true;
     moved = false;
+    button.classList.add("is-pointer-down");
     const rect = button.getBoundingClientRect();
     startLeft = rect.left;
     startTop = rect.top;
+    pendingLeft = rect.left;
+    pendingTop = rect.top;
     buttonWidth = rect.width || button.offsetWidth || 48;
     buttonHeight = rect.height || button.offsetHeight || 48;
     startX = event.clientX;
     startY = event.clientY;
+    resetDragTransform(button, baseTransform);
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   });
 
   button.addEventListener("click", () => {
-    if (moved) {
+    if (moved || suppressClick) {
+      suppressClick = false;
       return;
     }
     expandToolbar();

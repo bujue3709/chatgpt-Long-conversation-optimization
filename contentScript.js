@@ -17,8 +17,17 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
 
     window.addEventListener("resize", () => {
       const btn = document.getElementById(MINIMIZED_ID);
-      if (btn && btn.classList.contains("is-visible")) {
+      if (
+        btn &&
+        btn.classList.contains("is-visible") &&
+        !minimizedButtonState.pointerDown &&
+        !minimizedButtonState.dragging
+      ) {
         ensureButtonVisible(btn);
+      }
+      if (timelineState.pointerDown || timelineState.dragging) {
+        timelineState.refreshPending = true;
+        return;
       }
       updateTimelinePosition();
       scheduleTimelineRefresh();
@@ -31,6 +40,11 @@ if (!window[TOOLKIT_BOOTSTRAP_FLAG]) {
   setupResizeListener();
 
   const observer = new MutationObserver(() => {
+    if (timelineState.pointerDown || timelineState.dragging) {
+      timelineState.refreshPending = true;
+      return;
+    }
+
     const toolbar = document.getElementById(TOOLKIT_ID);
     const minimizedButton = document.getElementById(MINIMIZED_ID);
     const timeline = document.getElementById(TIMELINE_ID);
